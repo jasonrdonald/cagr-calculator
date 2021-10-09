@@ -1,0 +1,321 @@
+<html>
+<head>
+	<!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+      <!--Let browser know website is optimized for mobile-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<!--<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	-->
+    <script>
+	  //$( function() {
+		//$( "#tabs" ).tabs();
+	  //} );
+	  $(document).ready(function(){
+		$('.tabs').tabs();
+	  });
+	</script>
+	<style>
+		.header
+		{
+			color: #ee6e73;
+		}
+	</style>
+</head>
+
+<body>
+<script>
+$(document).ready(function() {
+  $("#btnSubmit").click(function(){
+    var vbegin=$("#vbegin").val();
+    var vfinal=$("#vfinal").val();
+    var years=$("#years").val();
+
+    var cagr = (Math.pow(vfinal/vbegin, 1/years) - 1) * 100;
+    cagr = Math.round((cagr + Number.EPSILON) * 100) / 100;
+    $("#cagrresult").html('CAGR: ' + cagr + '%');
+    $("#xtimes").html('Growth X times: ' + (vfinal/vbegin));
+	
+	$("#cagr-years-table").empty();
+	var cagrNoRounding = (Math.pow(vfinal/vbegin, 1/years) - 1) * 100;
+	calculateYearwise(vbegin, cagrNoRounding, years, "cagr");
+
+	buildChart();
+  });
+  
+  $("#btnReverse").click(function(){
+	var revbegin = $("#rev-begin").val();
+	var revcagr = $("#rev-cagr").val();
+	var revyears = $("#rev-years").val();
+	var targetAmount = revbegin * Math.pow((revcagr / 100 + 1), revyears);
+	targetAmount = Math.round(targetAmount);
+	$("#targetAmount").html('Target Amount: ' + targetAmount);
+	$("#absoluteGrowth").html('Absolute Growth: ' + (targetAmount/revbegin));
+
+	$("#reverse-years-table").empty();
+	calculateYearwise(revbegin, revcagr, revyears, "reverse");
+
+	buildChart();
+  });
+  
+  
+});
+function buildChart()
+{
+	resetChartCanvas();
+	chartConfig.data = cagrChartData;
+	pieconfig.data = piedata;
+	generateCanvas(chartConfig, pieconfig);
+	clearChartData();
+}
+
+function generateCanvas(input, input2){
+	var ctx = $('#myChart');
+	var myChart = new Chart(ctx, input);
+	
+	var ctx2 = $('#pieChart');
+	var pieChart = new Chart(ctx2, input2);
+}
+function resetChartCanvas()
+{
+	while(Object.keys(Chart.instances).length >= 1)
+	{
+		Chart.instances[Object.keys(Chart.instances)[0]]?.destroy();
+	}
+	return Promise.resolve('done');
+}
+
+function clearChartData()
+{
+	//chartConfig.data = {};
+	cagrChartData.labels = [];
+	cagrChartData.datasets[0].data = [];
+	piedata.datasets[0].data = [];
+}
+
+
+function calculateYearwise(begin, cagr, years, table)
+{
+	for (let year = 0; year <= years; year++) {
+		var amount = begin * Math.pow((cagr / 100 + 1), year);
+		amount = Math.round(amount);
+		cagrGenerateRows(year, amount, amount/begin, table);
+		//console.log(cagrChartData);
+		cagrChartData.labels.push(year);
+		cagrChartData.datasets[0].data.push(amount);
+		piedata.datasets[0].data = [begin, amount];
+		console.log(cagrChartData);		
+	}
+	return Promise.resolve('done');
+}
+
+function cagrGenerateRows(year, value, growth, table)
+{
+  $("#"+table+"-years-table").append("<tr><td>" + year + "</td><td><span>" + value + "</span></td><td><span>" + growth + "</span></td></tr>");
+}
+
+function rangeChange(value, type)
+{
+	console.log(value);
+	$("#"+type +"-range-value").html(value);
+}
+var chartConfig = {
+		type: 'bar',
+		data: {},
+		options: {
+				scales: {
+					y: {
+						beginAtZero: true
+					}
+				}
+			}
+		}
+var cagrChartData = {
+				labels: [],
+				datasets: [{
+					label: 'Value',
+					data: [],
+					}],
+				backgroundColor: [
+					'rgba(255, 99, 132, 0.2)',
+					'rgba(54, 162, 235, 0.2)',
+					'rgba(255, 206, 86, 0.2)',
+					'rgba(75, 192, 192, 0.2)',
+					'rgba(153, 102, 255, 0.2)',
+					'rgba(255, 159, 64, 0.2)'
+				],
+				borderColor: [
+					'rgba(255, 99, 132, 1)',
+					'rgba(54, 162, 235, 1)',
+					'rgba(255, 206, 86, 1)',
+					'rgba(75, 192, 192, 1)',
+					'rgba(153, 102, 255, 1)',
+					'rgba(255, 159, 64, 1)'
+				],
+				borderWidth: 1
+				};
+const pieconfig = {
+  type: 'pie',
+  data: {},
+};
+
+const piedata = {
+  labels: [
+    'Initial Value',
+    'Final Value' 
+  ],
+  datasets: [{
+    label: 'Investment vs Return',
+    data: [],
+    backgroundColor: [
+      'rgb(255, 99, 132)',
+      'rgb(54, 162, 235)'
+    ],
+    hoverOffset: 4
+  }]
+};
+
+</script>
+	<!--JavaScript at end of body for optimized loading-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+	  
+	<div id="tabs" class="container">
+		<div class="row">
+		  <ul class="tabs">
+			<li class="tab col s3"><a class="active" href="#divcagr" onclick="resetChartCanvas()">CAGR Calculator</a></li>
+			<li class="tab col s3"><a href="#divreverse" onclick="resetChartCanvas()">Reverse CAGR Calculator</a></li>
+		  </ul>
+		  <div id="divcagr" class="col s12">
+			<h2 class="header">CAGR Calculator</h2>
+			<div class="col s12">
+				<div class="divlabel"><label for="vbegin">Starting Value</label></div>
+				<input type="text" id="vbegin"/>
+			</div>
+			<div class="col s12">
+				<div class="divlabel"><label for="vfinal">Target Value</label></div>
+				<input type="text" id="vfinal"/>
+			</div>
+			<div class="col s1">
+				<div class="divlabel"><label for="years">Years</label></div>
+				<span class="badge" id="cagr-range-value">10</span>
+			</div>
+			<div class="col s11">
+				
+				<!--<input type="text" id="years" value="10"/>-->
+				<p class="range-field">
+				  <input type="range" id="years" min="1" max="50" onchange="rangeChange(this.value, 'cagr')" value="10" />
+				</p>				
+			</div>
+			
+			<div class="col s12">
+				<button type="button" id="btnSubmit" class="btn waves-effect waves-light">Get CAGR</button>
+			</div>
+			
+			<div class="col s6 push-s6">
+				<div class="divider"></div>
+				<div class="section">
+					<span class="flow-text" id="xtimes"></span>
+				</div>
+			</div>
+			
+			<div class="col s6 pull-s6" >
+				<div class="divider"></div>
+				<div class="section">
+					<span class="flow-text" id="cagrresult"></span>
+				</div>
+			</div>
+			
+		  
+			<div class="col s12"> 
+			<div class="divider"></div>
+			<h5 class="header">Growth Table</h5>
+			 <table class="highlight striped">
+				<thead>
+				  <tr>
+					  <th>Year</th>
+					  <th>Value</th>
+					  <th>Growth</th>
+				  </tr>
+				</thead>
+
+				<tbody id="cagr-years-table">
+				  
+				</tbody>
+			  </table>
+			 </div>
+			</div>
+		  <div id="divreverse" class="col s12">
+			<h2 class="header">Reverse CAGR Calculator</h2>
+			<div class="col s12">
+				<div class="divlabel"><label for="rev-begin">Starting Value</label></div>
+				<input type="text" id="rev-begin"/>
+			</div>
+			<div class="col s12">
+				<div class="divlabel"><label for="rev-cagr">Expected CAGR</label></div>
+				<input type="number" id="rev-cagr" min="1" max="100"/>
+			</div>
+			
+			<div class="col s1">
+				<div class="divlabel"><label for="rev-years">Years</label></div>
+				<span class="badge" id="rev-range-value">10</span>
+			</div>
+			<div class="col s11">
+				<p class="range-field">
+				  <input type="range" id="rev-years" min="1" max="50" onchange="rangeChange(this.value, 'rev')" value="10" />
+				</p>				
+			</div>
+			<div class="col s12">
+			<button type="button" id="btnReverse" class="btn waves-effect waves-light">Get Target Amount</button>
+			</div>
+			<br/>
+			
+			<div class="col s6 push-s6">
+				<div class="divider"></div>
+				<span class="flow-text" id="absoluteGrowth"></span>
+			</div>
+			<div class="col s6 pull-s6">
+				<div class="divider"></div>
+				<span class="flow-text" id="targetAmount"></span>
+			</div>
+			<div class="col s12"> 
+			<div class="divider"></div>
+			<h5 class="header">Growth Table</h5>
+			 <table class="highlight striped">
+				<thead>
+				  <tr>
+					  <th>Year</th>
+					  <th>Value</th>
+					  <th>Growth</th>
+				  </tr>
+				</thead>
+
+				<tbody id="reverse-years-table">
+				  
+				</tbody>
+			  </table>
+			 </div>
+			</div>
+	    </div>
+		<div class="row">
+		<div class="divider"></div>
+			<div id="charts" class="col s6">
+				<h5 class="header">Chart</h5>
+				
+				<canvas id="myChart" width="400" height="400"></canvas>
+			</div>
+			<div class="col s6">
+				<canvas id="pieChart" width="400" height="400"></canvas>
+			</div>
+		</div>		
+	</div>  
+</body>
+</html>
+
