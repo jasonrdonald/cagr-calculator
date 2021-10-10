@@ -38,11 +38,11 @@ $(document).ready(function() {
     var vbegin=$("#vbegin").val();
     var vfinal=$("#vfinal").val();
     var years=$("#years").val();
-
+	
     var cagr = (Math.pow(vfinal/vbegin, 1/years) - 1) * 100;
     cagr = Math.round((cagr + Number.EPSILON) * 100) / 100;
     $("#cagrresult").html('CAGR: ' + cagr + '%');
-    $("#xtimes").html('Growth X times: ' + (vfinal/vbegin));
+    $("#xtimes").html('Growth X times: ' + (vfinal/vbegin).toFixed(2));
 	
 	$("#cagr-years-table").empty();
 	var cagrNoRounding = (Math.pow(vfinal/vbegin, 1/years) - 1) * 100;
@@ -55,13 +55,15 @@ $(document).ready(function() {
 	var revbegin = $("#rev-begin").val();
 	var revcagr = $("#rev-cagr").val();
 	var revyears = $("#rev-years").val();
-	var targetAmount = revbegin * Math.pow((revcagr / 100 + 1), revyears);
-	targetAmount = Math.round(targetAmount);
-	$("#targetAmount").html('Target Amount: ' + targetAmount);
-	$("#absoluteGrowth").html('Absolute Growth: ' + (targetAmount/revbegin));
+	var topup=$("#topup").val() == '' ? 0 : $("#topup").val();
+	
+	//var targetAmount = revbegin * Math.pow((revcagr / 100 + 1), revyears);
+	//targetAmount = Math.round(targetAmount);	
 
 	$("#reverse-years-table").empty();
-	calculateYearwise(revbegin, revcagr, revyears, "reverse");
+	var targetAmount = calculateYearwise(revbegin, revcagr, revyears, "reverse", topup);
+	$("#targetAmount").html('Target Amount: ' + Math.round(targetAmount));
+	$("#absoluteGrowth").html('Absolute Growth: ' + (targetAmount/revbegin).toFixed(2));
 
 	buildChart();
   });
@@ -102,24 +104,37 @@ function clearChartData()
 }
 
 
-function calculateYearwise(begin, cagr, years, table)
+function calculateYearwise(begin, cagr, years, table, topup)
 {
+	begin = parseInt(begin);
+	topup = topup == undefined ? 0 : parseInt(topup);
+	var yearBegin = parseInt(begin);
+	var finalAmount = 0;
 	for (let year = 0; year <= years; year++) {
-		var amount = begin * Math.pow((cagr / 100 + 1), year);
-		amount = Math.round(amount);
+		var y = year > 0 ? 1 : 0; //per year amount calculation, if needed for nth year, this should be n
+		var amount = yearBegin * Math.pow((cagr / 100 + 1), y);
+		//amount = Math.round(amount);
+		//console.log('yearBegin');
+		//console.log(yearBegin);
+		//console.log('yearEnd');
+		//console.log(amount);
 		cagrGenerateRows(year, amount, amount/begin, table);
 		//console.log(cagrChartData);
 		cagrChartData.labels.push(year);
-		cagrChartData.datasets[0].data.push(amount);
-		piedata.datasets[0].data = [begin, amount];
-		console.log(cagrChartData);		
+		cagrChartData.datasets[0].data.push(Math.round(amount));
+		piedata.datasets[0].data = [begin, Math.round(amount)];
+		//console.log(cagrChartData);
+		if(year > 0)
+			yearBegin = amount + topup;
+		
+		finalAmount = amount;
 	}
-	return Promise.resolve('done');
+	return finalAmount;
 }
 
 function cagrGenerateRows(year, value, growth, table)
 {
-  $("#"+table+"-years-table").append("<tr><td>" + year + "</td><td><span>" + value + "</span></td><td><span>" + growth + "</span></td></tr>");
+  $("#"+table+"-years-table").append("<tr><td>" + year + "</td><td><span>" + Math.round(value) +"</span></td><td><span>" + growth.toFixed(2) + "</span></td></tr>");
 }
 
 function rangeChange(value, type)
@@ -261,8 +276,11 @@ const piedata = {
 			<div class="col s12">
 				<div class="divlabel"><label for="rev-cagr">Expected CAGR</label></div>
 				<input type="number" id="rev-cagr" min="1" max="100"/>
+			</div>			
+			<div class="col s12">
+				<div class="divlabel"><label for="topup">Annual Topup</label></div>
+				<input type="text" id="topup" value="0"/>
 			</div>
-			
 			<div class="col s1">
 				<div class="divlabel"><label for="rev-years">Years</label></div>
 				<span class="badge" id="rev-range-value">10</span>
