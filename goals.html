@@ -50,9 +50,7 @@ $(document).ready(function() {
   });
   
   $("#btnFooter").click(function(){
-	$(".savings").blur();
-	$(".contrib").blur();
-	$(".target").blur();
+	calculateFooter();
   });
   
   $('.tooltipped').tooltip();
@@ -103,7 +101,7 @@ $(document).ready(function() {
 		savingsPerc[i] = nl(obj.value)/savings * 100;
 		$("#savings-perc-"+i).text(savingsPerc[i].toFixed(1) + '%');
 	});
-	
+	footerTotal[1] = savings;
 	$("#savings").text(savings);
   });
   
@@ -117,7 +115,10 @@ $(document).ready(function() {
 		contribPerc[i] = nl(obj.value)/contrib * 100;
 		$("#contrib-perc-"+i).text(contribPerc[i].toFixed(1) + '%');
 	});
+	footerTotal[2] = contrib;
 	$("#contrib").text(contrib);
+	
+	calculateEstimatedYears()
   });
 });
 
@@ -135,6 +136,7 @@ const targetBlur = (index) => {
 		targetPerc[i] = nl(obj.value)/target * 100;
 		$("#target-perc-"+i).text(targetPerc[i].toFixed(1) + '%');
 	});
+	footerTotal[0] = target;
 	$("#target").text(target);
 }
 
@@ -155,16 +157,26 @@ function calculateAll()
 	goalOutput("child");
 	goalOutput("gold");
 	//goalOutput("vacation");
-	
+	calculateFooter();
+}
+
+function calculateFooter()
+{
 	$(".savings").blur();
 	$(".contrib").blur();
 	$(".target").blur();
 	
-	$("#estmonths").text((goalInMonthsCalculated.reduce((a, b) => a + b, 0)/12).toFixed(1) + ' yrs');
-	
-	
+	calculateEstimatedYears();
 }
 
+function calculateEstimatedYears()
+{
+	//var totalEstimatedYears = (goalInMonthsCalculated.reduce((a, b) => a + b, 0)/12).toFixed(1) + ' yrs';
+	var totalEstimatedYears = ((footerTotal[0] - footerTotal[1])/footerTotal[2]/12).toFixed(2) + ' yrs';
+	$("#estmonths").text(totalEstimatedYears);
+}
+
+var footerTotal = [0,0,0];
 var goalInMonthsCalculated = [0,0,0,0,0,0];
 function goalOutput(goal)
 {
