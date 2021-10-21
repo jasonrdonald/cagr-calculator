@@ -34,6 +34,10 @@
 			margin: 0;
 			text-transform: uppercase;
 		}
+		span.sm
+		{
+			font-size: small;
+		}
 	</style>
 </head>
 
@@ -45,11 +49,23 @@ $(document).ready(function() {
 	buildChart();
   });
   
+  $("#btnFooter").click(function(){
+	$(".savings").blur();
+	$(".contrib").blur();
+	$(".target").blur();
+  });
+  
   $('.tooltipped').tooltip();
   calculateAll();
   buildChart();
   
   $(".calculate").change(function(){
+	calculateAll();
+  });
+  
+  //experiment with fixed monthly contribution to arrive total goal achievement in months
+  $(".simulate").on('blur',function(){
+	monthSavingsChange();
 	calculateAll();
   });
   
@@ -77,27 +93,61 @@ $(document).ready(function() {
 	goalOutput("gold");
   });
   
-  
   $(".savings").blur(function(){
 	var savings = 0;
+	var savingsPerc = [0,0,0,0,0,0];
 	$(".savings").each(function(i, obj){
 		savings += nl(obj.value);
 	});
+	$(".savings").each((i, obj) => {
+		savingsPerc[i] = nl(obj.value)/savings * 100;
+		$("#savings-perc-"+i).text(savingsPerc[i].toFixed(1) + '%');
+	});
+	
 	$("#savings").text(savings);
   });
   
   $(".contrib").blur(function(){
 	var contrib = 0;
+	var contribPerc = [0,0,0,0,0,0];
 	$(".contrib").each(function(i, obj){
 		contrib += nl(obj.value);
+	});
+	$(".contrib").each((i, obj) => {
+		contribPerc[i] = nl(obj.value)/contrib * 100;
+		$("#contrib-perc-"+i).text(contribPerc[i].toFixed(1) + '%');
 	});
 	$("#contrib").text(contrib);
   });
 });
 
+var targetStateChange = [0,0,0,0,0,0];
+
+const targetBlur = (index) => {
+	targetStateChange[index] = 1;
+	
+	var target = 0;
+	var targetPerc = [0,0,0,0,0,0];
+	$(".target").each(function(i, obj){
+		target += nl(obj.value);
+	});
+	$(".target").each((i, obj) => {
+		targetPerc[i] = nl(obj.value)/target * 100;
+		$("#target-perc-"+i).text(targetPerc[i].toFixed(1) + '%');
+	});
+	$("#target").text(target);
+}
+
+const monthSavingsChange = () => {
+	var monthSavings = nl($("#month-savings").val());
+		
+		$(".contrib").each(function(i, obj){
+			obj.value = monthSavings;
+		});
+}
+
 function calculateAll()
 {
-	
 	goalOutput("emer");
 	goalOutput("retire");
 	goalOutput("insure");
@@ -105,8 +155,17 @@ function calculateAll()
 	goalOutput("child");
 	goalOutput("gold");
 	//goalOutput("vacation");
+	
+	$(".savings").blur();
+	$(".contrib").blur();
+	$(".target").blur();
+	
+	$("#estmonths").text((goalInMonthsCalculated.reduce((a, b) => a + b, 0)/12).toFixed(1) + ' yrs');
+	
+	
 }
 
+var goalInMonthsCalculated = [0,0,0,0,0,0];
 function goalOutput(goal)
 {
 	var expenses = $("#expenses").val();
@@ -114,23 +173,47 @@ function goalOutput(goal)
 	var targetage = parseInt($("#targetage").val());
 	
 	var multiplier = 1;
-	if(goal== "emer") multiplier = 6;	//6 months
-	else if(goal== "retire") multiplier =  12 * 25;	//25 yrs or 4% yield
-	else if(goal== "insure") multiplier =  4.4;	//10 yrs 
-	else if(goal== "house") multiplier =  160;	// 80L
-	else if(goal== "child") multiplier = 50;	// 25L
-	else if(goal== "gold") multiplier = 50; //25L
-	else if(goal== "vacation") multiplier = 6; //6 months
+	var changeFlag = targetStateChange[chartArrayIndex] == 0 ? 1 : 0;
+	var chartArrayIndex = 0;
+	if(goal== "emer") {multiplier = 6;	//6 months
+		chartArrayIndex = 0;
+	}
+	else if(goal== "retire") {multiplier =  12 * 25;	//25 yrs or 4% yield
+		chartArrayIndex = 1;
+	}
+	else if(goal== "insure") {multiplier =  4.4;	//10 yrs 
+		chartArrayIndex = 2;
+	}
+	else if(goal== "house") {multiplier =  160;	// 80L
+		chartArrayIndex = 3;
+	}
+	else if(goal== "child") {multiplier = 50;	// 25L
+		chartArrayIndex = 4;
+	}
+	else if(goal== "gold") {multiplier = 50; //25L
+		chartArrayIndex = 5;
+	}
+	else if(goal== "vacation") {multiplier = 6; //6 months
+		chartArrayIndex = 6;
+	}
 	
 	console.log(multiplier);
 	
-	var goaltarget = parseInt(parseInt(expenses) * multiplier);
+	var goaltarget = targetStateChange[chartArrayIndex] == 0
+						? parseInt(parseInt(expenses) * multiplier) 
+						: nl($("#"+ goal + "-goal-target").val());
 	console.log(goaltarget);
-	$("#"+ goal + "-goal-target").text(goaltarget);
+	$("#"+ goal + "-goal-target").val(goaltarget);
+		
 	var goalsavings = parseInt(nl($("#"+ goal + "-goal-savings").val()));
 	var monthlycontrib = parseInt(nl($("#"+ goal + "-monthly-contrib").val()));
 	
-	$("#"+ goal + "-est-age").text(currage + Math.round(((goaltarget-goalsavings)/monthlycontrib)/12));
+	var goalestage = '<span>' + nl(currage + Math.round(((goaltarget-goalsavings)/monthlycontrib)/12)) +'</span> <br/>' 
+					+ '<span class="sm">' + nl(Math.round(((goaltarget-goalsavings)/monthlycontrib))) + ' months</span>'
+	goalInMonthsCalculated[chartArrayIndex] = nl(Math.round(((goaltarget-goalsavings)/monthlycontrib)));
+	$("#"+ goal + "-est-age").html(goalestage);
+	
+	$("#"+ goal + "-est-age").removeClass('green').removeClass('red');
 	if(currage + Math.round(((goaltarget-goalsavings)/monthlycontrib)/12) <= targetage)
 		$("#"+ goal + "-est-age").addClass('green lighten-3');
 	else
@@ -138,14 +221,18 @@ function goalOutput(goal)
 	
 	console.log("#"+ goal + "-est-age");
 	
-	piedata.datasets[0].data.push(goaltarget);
+	
+	piedata.datasets[0].data[chartArrayIndex] = goaltarget;
 	//cagrChartData.labels.push(goal);
-	cagrChartData.datasets[0].data.push(goaltarget);
-	cagrChartData.datasets[1].data.push(goalsavings);
+	cagrChartData.datasets[0].data[chartArrayIndex] = goaltarget;
+	cagrChartData.datasets[1].data[chartArrayIndex] = goalsavings;
 }
 
 function nl(x)
 {
+	if(x === Infinity)
+		return '&infin;';
+	//console.log(x);
 	if(x === null || x === undefined || x === '' || isNaN(x))
 		return 0;
 	
@@ -181,7 +268,7 @@ var cagrChartData = {
 				datasets: [
 					{
 					label: 'Target',
-					data: [],
+					data: [0,0,0,0,0,0],
 					backgroundColor: ['rgba(255, 99, 132, 0.2)',
 					'rgba(54, 162, 235, 0.2)',
 					'rgba(255, 206, 86, 0.2)',
@@ -191,7 +278,7 @@ var cagrChartData = {
 					},
 					{
 					label: 'Savings',
-					data: [],
+					data: [0,0,0,0,0,0],
 					backgroundColor: ['rgba(255, 99, 132, 0.2)',
 					'rgba(54, 162, 235, 0.2)',
 					'rgba(255, 206, 86, 0.2)',
@@ -234,7 +321,7 @@ const piedata = {
   ],
   datasets: [{
     label: 'Savings',
-    data: [],
+    data: [0,0,0,0,0,0],
     backgroundColor: [
 					'rgba(255, 99, 132, 0.2)',
 					'rgba(54, 162, 235, 0.2)',
@@ -257,9 +344,9 @@ const piedata = {
 
 function clearChartData()
 {
-	cagrChartData.datasets[0].data = [];
-	cagrChartData.datasets[1].data = [];
-	piedata.datasets[0].data = [];
+	cagrChartData.datasets[0].data = [0,0,0,0,0,0];
+	cagrChartData.datasets[1].data = [0,0,0,0,0,0];
+	piedata.datasets[0].data = [0,0,0,0,0,0];
 }
 
 
@@ -269,7 +356,7 @@ function buildChart()
 	chartConfig.data = cagrChartData;
 	pieconfig.data = piedata;
 	generateCanvas(chartConfig, pieconfig);
-	clearChartData();
+	//clearChartData();
 }
 
 function resetChartCanvas()
@@ -289,6 +376,28 @@ function generateCanvas(input, input2){
 	var pieChart = new Chart(ctx2, input2);
 }
 
+function defaultData()
+{
+	$("#emer-goal-savings").val(100000);
+	$("#retire-goal-savings").val(1000000);
+	$("#insure-goal-savings").val(100000);
+	$("#house-goal-savings").val(1000000);
+	$("#child-goal-savings").val(25000);
+	$("#gold-goal-savings").val(30000);
+	$(".savings").blur();
+	
+	$("#emer-monthly-contrib").val(10000);
+	$("#retire-monthly-contrib").val(25000);
+	$("#insure-monthly-contrib").val(2600);
+	$("#house-monthly-contrib").val(35000);
+	$("#child-monthly-contrib").val(5000);
+	$("#gold-monthly-contrib").val(4000);
+	
+	$(".contrib").blur();
+	$(".target").blur();
+	
+	calculateAll();
+}
 </script>
 	<!--JavaScript at end of body for optimized loading-->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
@@ -304,7 +413,7 @@ function generateCanvas(input, input2){
 		  <div id="divgoal" class="col s12">
 			<h4 class="header">Goals</h4>
 			<div class="col s12">
-				<div class="divlabel"><label for="expenses">Monthly Expense</label></div>
+				<div class="divlabel"><label for="expenses">(Retirement age) Monthly Expense</label></div>
 				<input type="text" id="expenses" value="50000" class="calculate"/>
 			</div>
 			<div class="col s4">
@@ -330,12 +439,9 @@ function generateCanvas(input, input2){
 				  <input type="range" id="targetage" min="1" max="50" onchange="rangeChange(this.value, 'targetage')" value="40"class="calculate" />
 				</p>				
 			</div>
-			
-			
-		  
 			<div class="col s12"> 
 			<div class="divider"></div>
-			<h5 class="header">Growth Table</h5>
+			<h5 class="header">Goals</h5>
 			 <table class="highlight striped">
 				<thead>
 				  <tr>
@@ -350,68 +456,98 @@ function generateCanvas(input, input2){
 				<tbody id="goals-table">
 				  <tr>
 					<td>Emergency Fund <i class="material-icons tooltipped" data-position="right" data-tooltip="6 Months Expenses">help_outline</i></td>
-					<td id="emer-goal-target"></td>
+					<td>
+						<input type="text" id="emer-goal-target" value="0" class="emer target" onblur="targetBlur(0)"></input>
+						<span class="sm" id="target-perc-0"></span>
+					</td>
 					<td>
 						<input type="text" id="emer-goal-savings" value="0" class="emer savings"></input>
+						<span class="sm" id="savings-perc-0"></span>
 					</td>
 					<td>
 						<input type="text" id="emer-monthly-contrib" value="0" class="emer contrib"></input>
+						<span class="sm" id="contrib-perc-0"></span>
 					</td>
 					<td id="emer-est-age"></td>
 				  </tr>
 				  <tr>
 					<td>Retirement <i class="material-icons tooltipped" data-position="right" data-tooltip="Yearly 4% withdrawal after Retirement">help_outline</i></td>
-					<td id="retire-goal-target"></td>
+					<td>
+						<input type="text" id="retire-goal-target" value="0" class="retire target" onblur="targetBlur(1)"></input>
+						<span class="sm" id="target-perc-1"></span>
+					</td>
 					<td>
 						<input type="text" id="retire-goal-savings" class="retire savings"></input>
+						<span class="sm" id="savings-perc-1"></span>
 					</td>
 					<td>
 						<input type="text" id="retire-monthly-contrib" class="retire contrib"></input>
+						<span class="sm" id="contrib-perc-1"></span>
 					</td>
 					<td id="retire-est-age"></td>
 				  </tr>
 				  
 				  <tr>
 					<td>Insurance Premium<i class="material-icons tooltipped" data-position="right" data-tooltip="10 Yrs Expenses as Cover">help_outline</i><p>*1 Cr cover</p></td>
-					<td id="insure-goal-target"></td>
+					<td>
+						<input type="text" id="insure-goal-target" value="0" class="insure target" onblur="targetBlur(2)"></input>
+						<span class="sm" id="target-perc-2"></span>
+					</td>
 					<td>
 						<input type="text" id="insure-goal-savings" class="insure savings"></input>
+						<span class="sm" id="savings-perc-2"></span>
 					</td>
 					<td>
 						<input type="text" id="insure-monthly-contrib" class="insure contrib"></input>
+						<span class="sm" id="contrib-perc-2"></span>
 					</td>
 					<td id="insure-est-age"></td>
 				  </tr>
 				  <tr>
 					<td>Housing <i class="material-icons tooltipped" data-position="right" data-tooltip="160 months (~13.33 yrs) Expenses">help_outline</i></td>
-					<td id="house-goal-target"></td>
+					<td>
+						<input type="text" id="house-goal-target" value="0" class="house target" onblur="targetBlur(3)"></input>
+						<span class="sm" id="target-perc-3"></span>
+					</td>
 					<td>
 						<input type="text" id="house-goal-savings" class="house savings"></input>
+						<span class="sm" id="savings-perc-3"></span>
 					</td>
 					<td>
 						<input type="text" id="house-monthly-contrib" class="house contrib"></input>
+						<span class="sm" id="contrib-perc-3"></span>
 					</td>
 					<td id="house-est-age"></td>
 				  </tr>
 				  <tr>
 					<td>Child Education <i class="material-icons tooltipped" data-position="right" data-tooltip="50 months or ~5 yrs Expenses">help_outline</i></td>
-					<td id="child-goal-target"></td>
+					<td>
+						<input type="text" id="child-goal-target" value="0" class="child target" onblur="targetBlur(4)"></input>
+						<span class="sm" id="target-perc-4"></span>
+					</td>
 					<td>
 						<input type="text" id="child-goal-savings" class="child savings"></input>
+						<span class="sm" id="savings-perc-4"></span>
 					</td>
 					<td>
 						<input type="text" id="child-monthly-contrib" class="child contrib"></input>
+						<span class="sm" id="contrib-perc-4"></span>
 					</td>
 					<td id="child-est-age"></td>
 				  </tr>
 				  <tr>
 					<td>Gold <i class="material-icons tooltipped" data-position="right" data-tooltip="50 months or ~5 yrs Expenses">help_outline</i></td>
-					<td id="gold-goal-target"></td>
+					<td>
+						<input type="text" id="gold-goal-target" value="0" class="gold target" onblur="targetBlur(5)"></input>
+						<span class="sm" id="target-perc-5"></span>
+					</td>
 					<td>
 						<input type="text" id="gold-goal-savings" class="gold savings"></input>
+						<span class="sm" id="savings-perc-5"></span>
 					</td>
 					<td>
 						<input type="text" id="gold-monthly-contrib" class="gold contrib"></input>
+						<span class="sm" id="contrib-perc-5"></span>
 					</td>
 					<td id="gold-est-age"></td>
 				  </tr>
@@ -420,26 +556,34 @@ function generateCanvas(input, input2){
 				<tfoot>
 				  <tr>
 					  <th>Total</th>
-					  <th></th>
+					  <th id="target"></th>
 					  <th id="savings"></th>
 					  <th id="contrib"></th>
-					  <th></th>
+					  <th id="estmonths"></th>
 				  </tr>
 				</tfoot>
 			  </table>
 			 </div>
 			</div>
 			<div class="col s12">
-				<button type="button" id="btnSubmit" class="btn waves-effect waves-light">Draw Chart</button>
+				<button type="button" id="btnSubmit" class="btn waves-effect waves-light">CALCULATE - REDRAW Charts</button>
+				<button type="button" id="btnFooter" class="btn waves-effect waves-light">Get Footer Summary</button>
 			</div>
 			
-			<div id="charts" class="col s12">
+			<div class="col s12">
+				<h5 class="header">Experiment - Fill Monthly Contributions</h5>
+				<div class="divlabel"><label for="month-savings">Monthly Savings Budget - Simulate total months to goal achievement</label></div>
+				<input type="text" id="month-savings" value="80000" class="simulate"/>
+				<button type="button" id="btnData" class="btn waves-effect waves-light" onclick="defaultData()"> sample data</button>				
+			</div>
+			
+			<div id="charts" class="col s6">
 			
 				<h5 class="header">Chart</h5>
 				
 				<canvas id="myChart" width="200" height="400"></canvas>
 			</div>
-			<div class="col s12">
+			<div class="col s6">
 			
 				<canvas id="pieChart" width="200" height="400"></canvas>
 			</div>
