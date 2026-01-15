@@ -1,3 +1,4 @@
+<root>
 <row-0>
   <Stock>AAVAS</Stock>
   <Ticker>NSE:AAVAS</Ticker>
@@ -419,8 +420,8 @@
   <LastYrDivPerShare>0</LastYrDivPerShare>
 </row-83>
 <row-84>
-  <Stock>M&M</Stock>
-  <Ticker>NSE:M&M</Ticker>
+  <Stock>M&amp;M</Stock>
+  <Ticker>NSE:M&amp;M</Ticker>
   <LastYrDivPerShare>25.3</LastYrDivPerShare>
 </row-84>
 <row-85>
@@ -733,3 +734,4 @@
   <Ticker>NSE:SAPPHIRE</Ticker>
   <LastYrDivPerShare>0</LastYrDivPerShare>
 </row-146>
+</root>
